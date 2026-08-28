@@ -1,0 +1,160 @@
+@page "/tickets"
+@rendermode InteractiveServer
+@using TicketWeb.Models
+@using TicketWeb.Services
+@inject TicketApiClient Api
+
+<PageTitle>Ticket</PageTitle>
+
+<h1>Ticket IT</h1>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+
+<EditForm Model="_editing" OnValidSubmit="SaveAsync" class="row g-2 mb-4 align-items-end">
+    <div class="col-md-3">
+        <label class="form-label">Titolo</label>
+        <InputText class="form-control" @bind-Value="_editing.Title" required />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Descrizione</label>
+        <InputText class="form-control" @bind-Value="_editing.Description" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Priorità</label>
+        <InputSelect class="form-select" @bind-Value="_editing.Priority">
+            @foreach (var p in Enum.GetValues<TicketPriority>())
+            {
+                <option value="@p">@p</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Stato</label>
+        <InputSelect class="form-select" @bind-Value="_editing.Status">
+            @foreach (var s in Enum.GetValues<TicketStatus>())
+            {
+                <option value="@s">@s</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100">@(_editing.Id == 0 ? "Crea" : "Salva")</button>
+    </div>
+    @if (_editing.Id != 0)
+    {
+        <div class="col-12">
+            <button type="button" class="btn btn-link p-0" @onclick="CancelEdit">Annulla modifica</button>
+        </div>
+    }
+</EditForm>
+
+@if (_tickets is null)
+{
+    <p>Caricamento...</p>
+}
+else if (_tickets.Count == 0)
+{
+    <p>Nessun ticket presente.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Titolo</th>
+                <th>Stato</th>
+                <th>Priorità</th>
+                <th>Creato</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in _tickets)
+            {
+                <tr>
+                    <td>@t.Id</td>
+                    <td>@t.Title</td>
+                    <td>@t.Status</td>
+                    <td>@t.Priority</td>
+                    <td>@t.CreatedAt.ToLocalTime().ToString("g")</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => Edit(t)">Modifica</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(t.Id)">Elimina</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Ticket>? _tickets;
+    private Ticket _editing = new();
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _tickets = await Api.GetAllAsync();
+            _errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Impossibile contattare ticket-api: {ex.Message}";
+            _tickets = new List<Ticket>();
+        }
+    }
+
+    private void Edit(Ticket t) => _editing = new Ticket
+    {
+        Id = t.Id,
+        Title = t.Title,
+        Description = t.Description,
+        Status = t.Status,
+        Priority = t.Priority
+    };
+
+    private void CancelEdit() => _editing = new Ticket();
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            if (_editing.Id == 0)
+            {
+                await Api.CreateAsync(_editing);
+            }
+            else
+            {
+                await Api.UpdateAsync(_editing);
+            }
+
+            _editing = new Ticket();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Salvataggio fallito: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        try
+        {
+            await Api.DeleteAsync(id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Eliminazione fallita: {ex.Message}";
+        }
+    }
+}

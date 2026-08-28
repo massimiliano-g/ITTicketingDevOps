@@ -1,0 +1,18 @@
+# Copia questo file in terraform.tfvars (mai committato, vedi .gitignore) e
+# valorizza con i tuoi dati reali.
+
+# Stesso suffisso random a 6 caratteri usato per l'ambiente shared (vedi
+# infra/environments/shared/terraform.tfvars per il valore già in uso).
+unique_suffix = "REPLACE_ME"
+
+# La tua UPN/email di login Azure (es. quella con cui fai "az login").
+aad_admin_login_name = "REPLACE_ME@example.com"
+
+# Recuperabile con: az ad signed-in-user show --query id -o tsv
+aad_admin_object_id = "REPLACE_ME"
+
+# Facoltativo: il tuo IP pubblico, per connetterti al database da locale
+# (es. Azure Data Studio). Verificalo con: curl ifconfig.me
+# my_ip_address = "REPLACE_ME"
+
+# location = "switzerlandnorth"  # default già corretto, override solo se necessario

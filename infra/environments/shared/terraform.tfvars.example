@@ -1,0 +1,17 @@
+# Copia questo file in terraform.tfvars (mai committato, vedi .gitignore) e
+# valorizza con i tuoi dati reali.
+
+# Consigliato: usa lo stesso suffisso random a 6 caratteri generato dallo
+# script di bootstrap per lo storage account dello state (variabile
+# $RandomSuffix in Bootstrap/00-bootstrap-tfstate.ps1) — NON il nome intero
+# dello storage account. Es. se lo storage account è "sttfstatetktXXXXXX",
+# il suffisso da usare qui sono le ultime 6 lettere/cifre "XXXXXX".
+unique_suffix = "REPLACE_ME"
+
+# location = "switzerlandnorth"  # default già corretto, override solo se necessario
+
+# tags = {
+#   project     = "ticketsystem"
+#   environment = "shared"
+#   managed_by  = "terraform"
+# }

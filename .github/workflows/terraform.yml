@@ -26,6 +26,8 @@ on:
     branches: [master]
     paths:
       - "infra/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch: {} # permette di rilanciare manualmente da Actions -> Run workflow
 
 permissions:
   id-token: write # richiesto per ottenere il token OIDC da GitHub
@@ -102,7 +104,7 @@ jobs:
         run: exit 1
 
   apply-dev:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: dev
     defaults:

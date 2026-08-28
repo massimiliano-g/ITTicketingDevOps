@@ -23,6 +23,8 @@ on:
     branches: [master]
     paths:
       - "src/**"
+      - ".github/workflows/app.yml"
+  workflow_dispatch: {} # permette di rilanciare manualmente da Actions -> Run workflow
 
 permissions:
   id-token: write

@@ -114,10 +114,10 @@ resource "azurerm_user_assigned_identity" "dev" {
 # reale), quindi non è legato a un GitHub Environment.
 resource "azurerm_federated_identity_credential" "dev_pull_request" {
   name                = "github-pull-request"
-  parent_id           = azurerm_user_assigned_identity.dev.id
+  user_assigned_identity_id = azurerm_user_assigned_identity.dev.id
   audience            = ["api://AzureADTokenExchange"]
   issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repository}:pull_request"
+  subject             = "repo:${var.github_subject_prefix}:pull_request"
 }
 
 # Subject "environment:dev": usato dal job di apply su dev dopo il merge —
@@ -126,10 +126,10 @@ resource "azurerm_federated_identity_credential" "dev_pull_request" {
 # ambiente).
 resource "azurerm_federated_identity_credential" "dev_environment" {
   name                = "github-environment-dev"
-  parent_id           = azurerm_user_assigned_identity.dev.id
+  user_assigned_identity_id = azurerm_user_assigned_identity.dev.id
   audience            = ["api://AzureADTokenExchange"]
   issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repository}:environment:dev"
+  subject             = "repo:${var.github_subject_prefix}:environment:dev"
 }
 
 resource "azurerm_role_assignment" "dev_contributor" {
@@ -187,10 +187,10 @@ resource "azurerm_user_assigned_identity" "staging" {
 # (reviewer richiesti configurati sul GitHub Environment "staging").
 resource "azurerm_federated_identity_credential" "staging_environment" {
   name                = "github-environment-staging"
-  parent_id           = azurerm_user_assigned_identity.staging.id
+  user_assigned_identity_id = azurerm_user_assigned_identity.staging.id
   audience            = ["api://AzureADTokenExchange"]
   issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repository}:environment:staging"
+  subject             = "repo:${var.github_subject_prefix}:environment:staging"
 }
 
 resource "azurerm_role_assignment" "staging_contributor" {
@@ -229,10 +229,10 @@ resource "azurerm_user_assigned_identity" "prod" {
 
 resource "azurerm_federated_identity_credential" "prod_environment" {
   name                = "github-environment-prod"
-  parent_id           = azurerm_user_assigned_identity.prod.id
+  user_assigned_identity_id = azurerm_user_assigned_identity.prod.id
   audience            = ["api://AzureADTokenExchange"]
   issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repository}:environment:prod"
+  subject             = "repo:${var.github_subject_prefix}:environment:prod"
 }
 
 resource "azurerm_role_assignment" "prod_contributor" {

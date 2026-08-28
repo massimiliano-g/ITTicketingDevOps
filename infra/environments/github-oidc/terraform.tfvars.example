@@ -1,6 +1,8 @@
 # Copia questo file in terraform.tfvars (mai committato, vedi .gitignore) e
 # valorizza con i tuoi dati reali.
 
-github_repository = "massimiliano-g/ITTicketingDevOps"
+# Da Settings -> Actions -> General -> OIDC del repository su GitHub,
+# campo "Default subject claim prefix".
+github_subject_prefix = "massimiliano-g@116954457/ITTicketingDevOps@1349328987"
 
 # location = "switzerlandnorth"  # default già corretto, override solo se necessario

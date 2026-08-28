@@ -1,0 +1,83 @@
+# ==============================================================================
+# PIPELINE: Applicazione (ticket-api, ticket-web)
+# ==============================================================================
+# Push su master che tocca src/** -> build immagini via ACR Tasks (nessun
+# Docker richiesto sul runner), push con TAG = short SHA del commit
+# (immutabile — a differenza di un tag mobile come "dev", elimina
+# l'ambiguità su quale versione dell'immagine sia realmente in esecuzione,
+# lezione imparata durante il primo deploy manuale), poi deploy su dev via
+# Terraform (-var image_tag=<sha>, per restare l'unica fonte di verità sullo
+# stato desiderato — niente "az containerapp update" diretto che
+# causerebbe drift rispetto allo state).
+#
+# staging/prod non hanno ancora Container App proprie (solo il Resource
+# Group, vedi infra/environments/staging|prod) — la promozione verso quegli
+# ambienti verrà aggiunta come step successivo di questa pipeline quando
+# quelle risorse esisteranno.
+# ==============================================================================
+
+name: Application
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: dev
+    outputs:
+      image-tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: vars
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build & push ticket-api
+        run: |
+          az acr build \
+            --registry ${{ vars.ACR_NAME }} \
+            --image ticket-api:${{ steps.vars.outputs.tag }} \
+            --file src/TicketApi/Dockerfile \
+            src/TicketApi
+
+      - name: Build & push ticket-web
+        run: |
+          az acr build \
+            --registry ${{ vars.ACR_NAME }} \
+            --image ticket-web:${{ steps.vars.outputs.tag }} \
+            --file src/TicketWeb/Dockerfile \
+            src/TicketWeb
+
+  deploy-dev:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: infra/environments/dev
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init
+      - run: |
+          terraform apply -auto-approve -input=false \
+            -var="image_tag=${{ needs.build-and-push.outputs.image-tag }}"

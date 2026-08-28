@@ -1,0 +1,150 @@
+# ==============================================================================
+# PIPELINE: Terraform (infrastruttura)
+# ==============================================================================
+# - Pull request verso master che tocca infra/**  -> terraform plan su dev,
+#   commentato automaticamente sulla PR (nessuna modifica reale).
+# - Push su master che tocca infra/**             -> apply automatico su
+#   dev, poi staging e prod IN SEQUENZA, ciascuno dietro l'approvazione
+#   manuale richiesta dal relativo GitHub Environment (da configurare nelle
+#   impostazioni del repo: Settings -> Environments -> staging/prod ->
+#   Required reviewers).
+#
+# Autenticazione via OIDC (Federated Identity Credentials, vedi
+# infra/environments/github-oidc): nessun secret Azure salvato su GitHub.
+# Ogni job usa un'identità DIVERSA, con permessi limitati al proprio
+# ambiente — vedi commenti nel modulo Terraform per i dettagli.
+# ==============================================================================
+
+name: Terraform
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "infra/**"
+  push:
+    branches: [master]
+    paths:
+      - "infra/**"
+
+permissions:
+  id-token: write # richiesto per ottenere il token OIDC da GitHub
+  contents: read
+  pull-requests: write # per commentare il plan sulla PR
+
+jobs:
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/environments/dev
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID_DEV_PLAN }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init
+
+      - run: terraform plan -no-color -input=false
+        id: plan
+        continue-on-error: true
+
+      - name: Commenta il plan sulla PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = "<!-- terraform-plan-dev -->";
+            const outcome = "${{ steps.plan.outcome }}";
+            const output = `${marker}
+            ### Terraform Plan — dev
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            Esito: ${outcome}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: output,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: output,
+              });
+            }
+
+      - name: Fallisci se il plan e' fallito
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  apply-dev:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: infra/environments/dev
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init
+      - run: terraform apply -auto-approve -input=false
+
+  apply-staging:
+    needs: apply-dev
+    runs-on: ubuntu-latest
+    environment: staging
+    defaults:
+      run:
+        working-directory: infra/environments/staging
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init
+      - run: terraform apply -auto-approve -input=false
+
+  apply-prod:
+    needs: apply-staging
+    runs-on: ubuntu-latest
+    environment: prod
+    defaults:
+      run:
+        working-directory: infra/environments/prod
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init
+      - run: terraform apply -auto-approve -input=false

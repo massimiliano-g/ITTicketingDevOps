@@ -24,6 +24,12 @@ variable "aad_admin_object_id" {
   type        = string
 }
 
+variable "image_tag" {
+  description = "Tag delle immagini ticket-api/ticket-web da eseguire (build once, promote many: stessa immagine, tag diverso per promuoverla tra ambienti)."
+  type        = string
+  default     = "dev"
+}
+
 variable "my_ip_address" {
   description = "Il tuo IP pubblico, per autorizzare connessioni dirette al database da locale (es. Azure Data Studio). Lascia null per saltare la regola. Verifica il tuo IP con: curl ifconfig.me"
   type        = string

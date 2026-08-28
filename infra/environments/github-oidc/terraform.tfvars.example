@@ -1,0 +1,6 @@
+# Copia questo file in terraform.tfvars (mai committato, vedi .gitignore) e
+# valorizza con i tuoi dati reali.
+
+github_repository = "massimiliano-g/ITTicketingDevOps"
+
+# location = "switzerlandnorth"  # default già corretto, override solo se necessario

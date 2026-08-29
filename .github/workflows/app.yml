@@ -68,6 +68,12 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     environment: dev
+    # Stesso gruppo di concorrenza dei job di terraform.yml che toccano
+    # dev.terraform.tfstate — evita collisioni sul lock dello state quando
+    # le due pipeline girano nello stesso momento.
+    concurrency:
+      group: tfstate-dev
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: infra/environments/dev

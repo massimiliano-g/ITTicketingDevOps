@@ -38,6 +38,13 @@ jobs:
   plan:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    # Stesso gruppo di concorrenza di apply-dev/deploy-dev (app.yml): tutti
+    # e tre toccano lo stesso state (dev.terraform.tfstate). Senza questo,
+    # esecuzioni sovrapposte delle due pipeline collidono sul lock dello
+    # state Terraform ("Error acquiring the state lock").
+    concurrency:
+      group: tfstate-dev
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: infra/environments/dev
@@ -107,6 +114,9 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: dev
+    concurrency:
+      group: tfstate-dev
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: infra/environments/dev
@@ -128,6 +138,9 @@ jobs:
     needs: apply-dev
     runs-on: ubuntu-latest
     environment: staging
+    concurrency:
+      group: tfstate-staging
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: infra/environments/staging
@@ -146,6 +159,9 @@ jobs:
     needs: apply-staging
     runs-on: ubuntu-latest
     environment: prod
+    concurrency:
+      group: tfstate-prod
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: infra/environments/prod

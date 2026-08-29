@@ -1,0 +1,15 @@
+# Copia questo file in terraform.tfvars (mai committato, vedi .gitignore) e
+# valorizza con i tuoi dati reali.
+
+# Stesso suffisso random a 6 caratteri usato per gli altri ambienti.
+unique_suffix = "REPLACE_ME"
+
+aad_admin_login_name = "REPLACE_ME@example.com"
+
+# Recuperabile con: az ad signed-in-user show --query id -o tsv
+aad_admin_object_id = "REPLACE_ME"
+
+# my_ip_address = "REPLACE_ME"
+
+# location  = "switzerlandnorth"  # default già corretto
+# image_tag = "dev"               # default già corretto, override solo se necessario

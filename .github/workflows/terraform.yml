@@ -149,6 +149,9 @@ jobs:
       ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       ARM_USE_OIDC: true
+      TF_VAR_unique_suffix: ${{ vars.TF_VAR_UNIQUE_SUFFIX }}
+      TF_VAR_aad_admin_login_name: ${{ vars.TF_VAR_AAD_ADMIN_LOGIN_NAME }}
+      TF_VAR_aad_admin_object_id: ${{ vars.TF_VAR_AAD_ADMIN_OBJECT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -169,6 +172,9 @@ jobs:
       ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_unique_suffix: ${{ vars.TF_VAR_UNIQUE_SUFFIX }}
+      TF_VAR_aad_admin_login_name: ${{ vars.TF_VAR_AAD_ADMIN_LOGIN_NAME }}
+      TF_VAR_aad_admin_object_id: ${{ vars.TF_VAR_AAD_ADMIN_OBJECT_ID }}
       ARM_USE_OIDC: true
     steps:
       - uses: actions/checkout@v4

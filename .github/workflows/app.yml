@@ -10,10 +10,10 @@
 # stato desiderato — niente "az containerapp update" diretto che
 # causerebbe drift rispetto allo state).
 #
-# staging/prod non hanno ancora Container App proprie (solo il Resource
-# Group, vedi infra/environments/staging|prod) — la promozione verso quegli
-# ambienti verrà aggiunta come step successivo di questa pipeline quando
-# quelle risorse esisteranno.
+# Dopo dev, la STESSA immagine (stesso tag SHA, non ricostruita) viene
+# promossa a staging e poi prod, ciascuno dietro l'approvazione manuale
+# richiesta dal relativo GitHub Environment — pattern "build once, promote
+# many" applicato end-to-end dalla pipeline, non solo a livello di ACR.
 # ==============================================================================
 
 name: Application
@@ -77,6 +77,58 @@ jobs:
     defaults:
       run:
         working-directory: infra/environments/dev
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+      TF_VAR_unique_suffix: ${{ vars.TF_VAR_UNIQUE_SUFFIX }}
+      TF_VAR_aad_admin_login_name: ${{ vars.TF_VAR_AAD_ADMIN_LOGIN_NAME }}
+      TF_VAR_aad_admin_object_id: ${{ vars.TF_VAR_AAD_ADMIN_OBJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init
+      - run: |
+          terraform apply -auto-approve -input=false \
+            -var="image_tag=${{ needs.build-and-push.outputs.image-tag }}"
+
+  deploy-staging:
+    needs: [build-and-push, deploy-dev]
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: tfstate-staging
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: infra/environments/staging
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+      TF_VAR_unique_suffix: ${{ vars.TF_VAR_UNIQUE_SUFFIX }}
+      TF_VAR_aad_admin_login_name: ${{ vars.TF_VAR_AAD_ADMIN_LOGIN_NAME }}
+      TF_VAR_aad_admin_object_id: ${{ vars.TF_VAR_AAD_ADMIN_OBJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init
+      - run: |
+          terraform apply -auto-approve -input=false \
+            -var="image_tag=${{ needs.build-and-push.outputs.image-tag }}"
+
+  deploy-prod:
+    needs: [build-and-push, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: prod
+    concurrency:
+      group: tfstate-prod
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: infra/environments/prod
     env:
       ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}

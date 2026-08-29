@@ -172,6 +172,16 @@ resource "azurerm_role_assignment" "dev_acr_push" {
   principal_id          = azurerm_user_assigned_identity.dev.principal_id
 }
 
+# AcrPush da solo copre push/pull dell'immagine, ma "az acr build" (ACR
+# Tasks: build lato server, senza Docker locale) richiede in più il
+# permesso di schedulare la run e caricare il contesto sorgente
+# (listBuildSourceUploadUrl/scheduleRun) — non incluso in AcrPush.
+resource "azurerm_role_assignment" "dev_acr_tasks_contributor" {
+  scope                = data.terraform_remote_state.shared.outputs.acr_id
+  role_definition_name = "Container Registry Tasks Contributor"
+  principal_id          = azurerm_user_assigned_identity.dev.principal_id
+}
+
 # ------------------------------------------------------------------------------
 # Identità staging
 # ------------------------------------------------------------------------------

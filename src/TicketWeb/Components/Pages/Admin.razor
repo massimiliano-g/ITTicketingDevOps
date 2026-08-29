@@ -1,0 +1,51 @@
+@page "/admin"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@inject TicketApiClient Api
+
+<PageTitle>Amministrazione</PageTitle>
+
+<h1>Amministrazione</h1>
+
+<div class="card" style="max-width: 480px;">
+    <div class="card-body">
+        <h5 class="card-title">Dati demo</h5>
+        <p class="card-text text-muted">
+            Elimina tutti i ticket esistenti e li sostituisce con un set di ticket
+            di esempio — utile per far ripartire un'esercitazione in aula da uno
+            stato pulito e prevedibile. Gli utenti non vengono toccati.
+        </p>
+        <button class="btn btn-warning" @onclick="ResetAsync" disabled="@_resetting">
+            Reimposta dati demo
+        </button>
+        @if (_message is not null)
+        {
+            <p class="mt-2 text-success">@_message</p>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _resetting;
+    private string? _message;
+
+    private async Task ResetAsync()
+    {
+        _resetting = true;
+        _message = null;
+
+        try
+        {
+            await Api.ResetDemoDataAsync();
+            _message = "Dati demo reimpostati correttamente.";
+        }
+        catch (Exception ex)
+        {
+            _message = $"Operazione fallita: {ex.Message}";
+        }
+        finally
+        {
+            _resetting = false;
+        }
+    }
+}

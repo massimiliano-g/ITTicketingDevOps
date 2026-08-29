@@ -97,6 +97,21 @@ resource "azurerm_role_assignment" "ticket_web_acr_pull" {
   principal_id          = module.ticket_web_identity.principal_id
 }
 
+module "attachments_storage" {
+  source = "../../modules/storage-account"
+
+  name                 = "sttktprod${var.unique_suffix}"
+  resource_group_name = azurerm_resource_group.prod.name
+  location             = azurerm_resource_group.prod.location
+  tags                 = var.tags
+}
+
+resource "azurerm_role_assignment" "ticket_api_storage_blob_contributor" {
+  scope                = module.attachments_storage.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id          = module.ticket_api_identity.principal_id
+}
+
 module "ticket_api" {
   source = "../../modules/container-app"
 
@@ -112,11 +127,12 @@ module "ticket_api" {
 
   env_vars = {
     ConnectionStrings__TicketDb = "Server=tcp:${module.sql_database.server_fqdn},1433;Initial Catalog=${module.sql_database.database_name};Authentication=Active Directory Managed Identity;User Id=${module.ticket_api_identity.client_id};Encrypt=True;"
+    Storage__ContainerUri       = module.attachments_storage.container_uri
   }
 
   tags = var.tags
 
-  depends_on = [azurerm_role_assignment.ticket_api_acr_pull]
+  depends_on = [azurerm_role_assignment.ticket_api_acr_pull, azurerm_role_assignment.ticket_api_storage_blob_contributor]
 }
 
 module "ticket_web" {

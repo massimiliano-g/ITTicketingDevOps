@@ -1,4 +1,7 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+@inject AuthStateService AuthState
+@inject NavigationManager Nav
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">TicketWeb</a>
     </div>
@@ -14,11 +17,41 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="tickets">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Ticket
-            </NavLink>
-        </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="tickets">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Ticket
+                    </NavLink>
+                </div>
+
+                @if (context.User.IsInRole("Admin"))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin">Amministrazione</NavLink>
+                    </div>
+                }
+
+                <div class="nav-item px-3 mt-3 text-white-50 small">
+                    @context.User.Identity?.Name
+                </div>
+                <div class="nav-item px-3">
+                    <button class="nav-link btn btn-link text-start p-0" @onclick="Logout">Esci</button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">Accedi</NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
 
+@code {
+    private void Logout()
+    {
+        AuthState.Clear();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+}

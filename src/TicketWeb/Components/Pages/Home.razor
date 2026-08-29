@@ -1,9 +1,15 @@
 ﻿@page "/"
+@rendermode InteractiveServer
 
 <PageTitle>TicketWeb</PageTitle>
 
 <h1>Ticket Management System</h1>
 
-<p>
-    <a class="btn btn-primary" href="tickets">Vai ai ticket</a>
-</p>
+<AuthorizeView>
+    <Authorized>
+        <p><a class="btn btn-primary" href="tickets">Vai alla board ticket</a></p>
+    </Authorized>
+    <NotAuthorized>
+        <p><a class="btn btn-primary" href="login">Accedi</a></p>
+    </NotAuthorized>
+</AuthorizeView>

@@ -28,6 +28,9 @@ bin/
 obj/
 *.user
 
+# Allegati salvati su disco in sviluppo locale (LocalFileStorageService)
+App_Data/
+
 # OS / editor
 .DS_Store
 Thumbs.db
